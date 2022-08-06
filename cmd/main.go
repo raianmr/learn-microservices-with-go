@@ -1,21 +1,47 @@
 package main
 
 import (
-	"fmt"
-	"io/ioutil"
+	"context"
+	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"time"
+
+	"github.com/raianmr/learn-microservices-with-go/msa/handlers"
 )
 
 func main() {
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		data, err := ioutil.ReadAll(r.Body)
+	l := log.New(os.Stdout, "api", log.LstdFlags)
+	hh := handlers.NewHello(l)
+	gh := handlers.NewGoodbye(l)
+	sm := http.NewServeMux()
+
+	sm.Handle("/hello", hh)
+	sm.Handle("/goodbye", gh)
+
+	s := &http.Server{
+		Addr:         ":9090",
+		Handler:      sm,
+		IdleTimeout:  120 * time.Second,
+		ReadTimeout:    1 * time.Second,
+		WriteTimeout:   1 * time.Second,
+	}
+
+	go func() {
+		err := s.ListenAndServe()
 		if err != nil {
-			http.Error(w, "met an error!", http.StatusBadRequest)
-			return
+			l.Fatal(err)
 		}
+	}()
 
-		fmt.Fprintf(w, "Data: %s\n", data)
-	})
+	sichan := make(chan os.Signal)
+	signal.Notify(sichan, os.Interrupt)
+	signal.Notify(sichan, os.Kill)
 
-	http.ListenAndServe(":9090", nil)
+	sig := <-sichan
+	l.Println("gracefully shutting down", sig)
+
+	tc, _ := context.WithTimeout(context.Background(), 30*time.Second)
+	s.Shutdown(tc)
 }
