@@ -9,8 +9,8 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/raianmr/learn-microservices-with-go/geddit/api/db"
-	my "github.com/raianmr/learn-microservices-with-go/geddit/api/http"
+	"github.com/raianmr/learn-microservices-with-go/api/db"
+	my "github.com/raianmr/learn-microservices-with-go/api/http"
 )
 
 func main() {
@@ -24,7 +24,7 @@ func main() {
 		WriteTimeout: time.Second * 15,
 		ReadTimeout:  time.Second * 15,
 		IdleTimeout:  time.Second * 60,
-		Handler: my.Handler(&my.State{
+		Handler: my.DefaultRouter(&my.State{
 			DB:  db.DefaultDB(),
 			Msg: "using defaults",
 		}),
